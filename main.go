@@ -5,16 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/traefik/traefik/v3/pkg/plugins"
 	"io"
-	"log"
 	"net/http"
 	"strings"
-	"errors"
-	"reflect"
-	"sort"
 	"strconv"
-	"text/scanner"
 )
 
 type Config struct {
@@ -147,7 +141,6 @@ func getBodyRequestJsonPathResult(path string, data interface{}) (string, error)
 func processJSON(data interface{}, dataJSON string,  req *http.Request) interface{} {
 
 	var result string
-	var errRequest error
 
 	var template2 map[string]interface{}
 	if err := json.Unmarshal([]byte(dataJSON), &template2); err != nil {
@@ -168,7 +161,7 @@ func processJSON(data interface{}, dataJSON string,  req *http.Request) interfac
 		return v
 	case string:
 		if strings.HasPrefix(v, "$.") {
-			result, errRequest = getBodyRequestJsonPathResult(v, template2)
+			result, _ = getBodyRequestJsonPathResult(v, template2)
 
 			return result
 		}
@@ -196,11 +189,9 @@ func processJSON(data interface{}, dataJSON string,  req *http.Request) interfac
 
 func updateNativeRequest(config ConfigItems,u *Uppercase,rw http.ResponseWriter, req *http.Request) {
 	var body []byte
-	var err, errRequest error
-	var resultSingleJsonPath string
-	var resultFinalJsonPath string
+	var err error
 
-	path := req.URL.Path
+
 
 
 	if req.Body != nil {
@@ -241,7 +232,7 @@ func updateNativeRequest(config ConfigItems,u *Uppercase,rw http.ResponseWriter,
 func (u *Uppercase) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 
-	for i, config := range u.cfg.RequestTransKonfigs  {
+	for _, config := range u.cfg.RequestTransKonfigs  {
         if !config.Enable {
             continue
         }
