@@ -1,0 +1,19 @@
+# The name of your plugin as displayed in the Plugins Catalog web UI.
+displayName: Body Transformer Plugin
+
+# For now, `middleware` is the only type available.
+type: middleware
+
+# The import path of your plugin.
+
+
+# A brief description of what your plugin is doing.
+summary: This Treafik plugin transform tou body request based on original body request, header or query parameters
+
+
+import: github.com/yasahmed/traefikbodyrequesttransformerx
+
+
+testData:
+  Headers:
+    Foo: Bar
