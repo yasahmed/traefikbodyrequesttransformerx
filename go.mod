@@ -1,4 +1,4 @@
-module traefikbodyrequesttransformerx
+module github.com/yasahmed/traefikbodyrequesttransformerx
 
 go 1.24.1
 
