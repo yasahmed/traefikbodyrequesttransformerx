@@ -23,14 +23,12 @@ import (
 
 var jwtCache = NewJWTCache()
 
-// CacheEntry represents a cached result
 type CacheEntry struct {
 	header    JWTHeader
 	claims    JWTClaims
 	signature []byte
 }
 
-// JWTCache is a thread-safe in-memory cache for JWT parsing results
 type JWTCache struct {
 	entries map[string]CacheEntry
 	mu      sync.RWMutex
@@ -47,11 +45,11 @@ type JWKS struct {
 }
 
 type JWK struct {
-	Kty string `json:"kty"` // Key type (e.g., "RSA")
-	Kid string `json:"kid"` // Key ID
-	Use string `json:"use"` // Key usage (e.g., "sig" for signature)
-	N   string `json:"n"`   // Modulus (Base64 URL encoded)
-	E   string `json:"e"`   // Exponent (Base64 URL encoded)
+	Kty string `json:"kty"`
+	Kid string `json:"kid"`
+	Use string `json:"use"`
+	N   string `json:"n"`  
+	E   string `json:"e"`   
 }
 
 type JWTHeader struct {
@@ -62,7 +60,6 @@ type JWTHeader struct {
 type JWTClaims struct {
 	Exp int64 `json:"exp"`
 	Jti string `json:"preferred_username"`
-	//Email string `json:"email_verified,omitempty"` // Assuming email is a field
 }
 
 type Config struct {
@@ -85,9 +82,7 @@ type ConfigItems struct {
 
 
 
-// Get dynamically retrieves a field value by name
 func (c JWTClaims) Get(fieldName string) (interface{}, error) {
-	// Use reflection to get the value of the field
 	val := reflect.ValueOf(c)
 	field := val.FieldByName(fieldName)
 
@@ -109,7 +104,6 @@ type Uppercase struct {
 	cfg  *Config
 }
 
-// Get retrieves a cached result by key
 func (c *JWTCache) Get(key string) (CacheEntry, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -118,7 +112,6 @@ func (c *JWTCache) Get(key string) (CacheEntry, bool) {
 	return entry, exists
 }
 
-// Set stores a result in the cache by key
 func (c *JWTCache) Set(key string, entry CacheEntry) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -127,7 +120,6 @@ func (c *JWTCache) Set(key string, entry CacheEntry) {
 }
 
 
-// NewJWTCache creates a new JWTCache instance
 func NewJWTCache() *JWTCache {
 	return &JWTCache{
 		entries: make(map[string]CacheEntry),
