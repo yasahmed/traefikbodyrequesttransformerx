@@ -63,8 +63,9 @@ type JWTClaims struct {
 }
 
 type Config struct {
-	RequestTransKonfigs  Configs `json:"requestTransKonfigs"`
+	Transformations  Configs `json:"transformations"`
 	JwksURL  string `json:"jwksURL"`
+	SecureType  string `json:"secureType"`
 
 
 }
@@ -77,6 +78,8 @@ type ConfigItems struct {
 	Method  string `json:"method"`
 	Enable bool `json:"enable"`
 	Secure bool `json:"secure"`
+	AddHeaders map[string]string `json:"addHeaders"`
+	RemoveHeaders  []string `json:"removeHeaders"`          
 
 }
 
@@ -433,7 +436,12 @@ func updateNativeRequest(config ConfigItems,u *Uppercase,rw http.ResponseWriter,
 			return
 		}
 
+
+
 		dataJSON := string(body)
+
+		fmt.Println("STRING %s", dataJSON)
+
 
 		var template map[string]interface{}
 		if err := json.Unmarshal([]byte(config.JspathRequest), &template); err != nil {
@@ -462,8 +470,7 @@ func updateNativeRequest(config ConfigItems,u *Uppercase,rw http.ResponseWriter,
 
 
 
-
-func (u *Uppercase) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func checkOauth2(u *Uppercase,rw http.ResponseWriter, req *http.Request) {
 
 	var publicKey *rsa.PublicKey
     var err error
@@ -474,58 +481,125 @@ func (u *Uppercase) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 	
 
-	for _, config := range u.cfg.RequestTransKonfigs  {
+	if err != nil {
+		fmt.Printf("Error getting public key: %v\n", err)
+		rw.WriteHeader(http.StatusUnauthorized)
+		rw.Write([]byte("Not Authorized: Error while checking Authorization"))
+		return
+	}
+
+	authHeader := req.Header.Get("Authorization")
+	if authHeader == "" {
+		
+		rw.WriteHeader(http.StatusUnauthorized)
+		rw.Write([]byte("Not Authorized: Authorization header is missing"))
+		return
+	}
+
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		rw.WriteHeader(http.StatusUnauthorized)
+		rw.Write([]byte("Not Authorized: Invalid Authorization header format"))
+		return
+	}
+
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+
+	valid, err := validateJWT(token,publicKey)
+	if err != nil {
+		fmt.Println("Error validating JWT: %v\n", err)
+		rw.WriteHeader(http.StatusUnauthorized)
+		rw.Write([]byte("Not Authorized: Error validating JWT"))
+		return
+	}
+
+	if valid {
+		fmt.Println("Token is valid")
+	} else {
+		fmt.Println("Error Token is invalid: %v\n", err)
+		rw.WriteHeader(http.StatusUnauthorized)
+		rw.Write([]byte("Not Authorized: Token is invalid"))
+		return
+	}
+}
+
+
+
+/*
+func changeHeaders(config ConfigItems,req *http.Request){
+	if len(config.AddHeaders) > 0 {
+		
+
+		fmt.Println("AddHeaders",config.AddHeaders)
+
+		for key, value := range config.AddHeaders {
+			if strings.HasPrefix(value, "$.") {
+
+				if req.Body != nil {
+					body, err = io.ReadAll(req.Body)
+					if err != nil {
+						fmt.Printf("Plugin %s: Failed to read request body: %v", u.name, err)
+						http.Error(rw, "Failed to read request body", http.StatusBadRequest)
+						return
+					}
+			
+					dataJSON := string(body)
+				}
+				var template2 map[string]interface{}
+				if err := json.Unmarshal([]byte(dataJSON), &template2); err != nil {
+					panic(err)
+				}
+				newValue := getBodyRequestJsonPathResult(value, template2)
+			}
+			
+			req.Header.Set(key, value)
+		}
+	}
+	
+	if len(config.RemoveHeaders) > 0 {
+		fmt.Println("RemoveHeaders",config.RemoveHeaders)
+
+		for _, key := range config.RemoveHeaders {
+			req.Header.Del(key)
+		}
+
+	}
+}*/
+
+func (u *Uppercase) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+
+	
+
+	var body []byte
+	var err error
+
+
+
+
+
+	for _, config := range u.cfg.Transformations  {
         if config.Enable {
 
-		
+
+
+
+
+
             
 		if req.URL.Path == config.Url && req.Method == config.Method {
 
+
+
+
 			if config.Secure  {
+				if( u.cfg.SecureType ==  "oauth2") {
+					checkOauth2(u,rw, req )	
+				}
 
-					if err != nil {
-						fmt.Printf("Error getting public key: %v\n", err)
-						rw.WriteHeader(http.StatusUnauthorized)
-						rw.Write([]byte("Not Authorized: Error while checking Authorization"))
-						return
-					}
-	
-					authHeader := req.Header.Get("Authorization")
-					if authHeader == "" {
-						
-						rw.WriteHeader(http.StatusUnauthorized)
-						rw.Write([]byte("Not Authorized: Authorization header is missing"))
-						return
-					}
-				
-					if !strings.HasPrefix(authHeader, "Bearer ") {
-						rw.WriteHeader(http.StatusUnauthorized)
-						rw.Write([]byte("Not Authorized: Invalid Authorization header format"))
-						return
-					}
-				
-					token := strings.TrimPrefix(authHeader, "Bearer ")
-
-					valid, err := validateJWT(token,publicKey)
-					if err != nil {
-						fmt.Println("Error validating JWT: %v\n", err)
-						rw.WriteHeader(http.StatusUnauthorized)
-						rw.Write([]byte("Not Authorized: Error validating JWT"))
-						return
-					}
-	
-					if valid {
-						fmt.Println("Token is valid")
-					} else {
-						fmt.Println("Error Token is invalid: %v\n", err)
-						rw.WriteHeader(http.StatusUnauthorized)
-						rw.Write([]byte("Not Authorized: Token is invalid"))
-						return
-					}
-	
 			}
-
-			updateNativeRequest(config,u,rw, req)
+            if(config.JspathRequest != "") {
+				updateNativeRequest(config,u,rw, req)
+			}
+			
 		}
         }
 
