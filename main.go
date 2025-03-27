@@ -27,11 +27,14 @@ http:
 
           jwksURL: "http://localhost:8081/realms/test/protocol/openid-connect/certs"
 
+
           clientId: "client"
           tokenUrl: "http://localhost:8081/realms/test/protocol/openid-connect/token"
           secret: "M1B3eLDAsZfQ9XIpC4CXLTuwZnulKE7J"
 
-          secureType: "oauth2" #Basic, Static (HeaderName, Value), Oauth2
+          secureType: "static" #basic, static (HeaderName, Value), oauth2
+          secureHeaderName: "CIH-X-AUTH"
+          secureHeaderValue: "MAMO"
 
           transformations:
             - enable: true
@@ -58,12 +61,12 @@ http:
                 }
             - enable: true
               secure: false
-              sendCredentials: false
+              sendCredentials: true
               method: "GET"
               url: "/api/headers"
               addHeaders:
-                X-Custom-Header: "MyValue"
-                User-Agent: "Traefik-Modified"
+                X-Custom-Header: "TOTO 1"
+                User-Agent: "TOTO M6"
                 User-Agent2: "$.eee"
                 User-Agent3: "_$q.q1"
                 User-Agent4: "_$c.Jti"
